@@ -1,0 +1,149 @@
+Function SLA(StartStamp As Date, EndStamp As Date, Optional BizStart As Date, Optional BizEnd As Date)
+
+'
+' I had a need to track the hours between when problem ticket was open and when
+'   it was resolved to meet Service Level Agreement (SLA) commitments.  However,
+'   I only needed to know how many Business hours the ticket was open.  Our Biz
+'   hours are Monday - Friday, 8:00am to 5:00pm.  This will take two time/date
+'   entries and calculate the number of hours between 8:00 and 5:00 (unless
+'   otherwise specified).  It will also exclude Sat or Sun hours.  (I'm also
+'   working on excluding holidays, but that's a future version.
+'
+'   This was created in Excel 97, but should be portable to later versions.
+'
+' Usage:
+'  SLA(Start Date,End Date,<optional> Business hour open, <optional> business hour close)
+'       where all variables are Excel Serial Number dates/times.
+
+'       The optional BizStart and BizEnd should be supplied if they are not
+'           8:00 am and 5:00 pm.
+'       If optional hours are supplied, BOTH should be defined or an error will be returned
+'       If the End Date is BEFORE the Start Date, an error message will be returned
+'       If the BizEnd is BEFORE the BizStart, an error message will be returned
+'
+'
+' Function Created 2/6/03 by W. Patrick Day, MCSE
+' Comments, questions, critiques, and suggestions should be sent to
+' Apexian@nc.rr.com or Patrick.Day.B@bayer.com
+'
+' If you make any improvements, please let me know, I've not a programmer by trade
+'   so I would definitely like to know how to make it better.
+'
+
+'*************************************************
+Dim DaysBetween, DayCount, WeekEndCount As Integer
+Dim FinalHours, StartHour, EndHour As Single
+
+Error_Checking:
+    If StartStamp > EndStamp Then 'looks reversed timestamps
+        SLA = "End before Start"
+        Exit Function
+    End If
+    
+    If StartStamp * EndStamp = 0 Then 'looks missing timestamps
+        SLA = "Missing Parameter"
+        Exit Function
+    End If
+
+        
+    If BizStart > BizEnd Then 'looks for reversed biz hours
+        SLA = "End before Start"
+        Exit Function
+    End If
+        
+    If BizStart = 0 And BizEnd = 0 Then 'assigns default hours if not passed
+        BizStart = 0.333333333333333 '8:00 AM
+        BizEnd = 0.708333333333333   '5:00 PM
+        GoTo Date_Fixing
+    End If
+    
+    If BizStart * BizEnd = 0 Then 'looks for partial Biz hrs
+        SLA = "Missing Parameter"
+        Exit Function
+    End If
+
+    If BizStart > 1 Or BizEnd > 1 Then 'looks for erronious times
+        SLA = "Bad Hours"
+        Exit Function
+    End If
+    
+
+'************************
+Date_Fixing:
+'Start Day on Weekend fix (Move to Friday)
+    Select Case WeekDay(Int(StartStamp), vbMonday)
+        Case 6
+            StartStamp = (Int(StartStamp) - 1) + BizEnd
+        Case 7
+            StartStamp = (Int(StartStamp) - 2) + BizEnd
+        Case Else
+            StartStamp = StartStamp + 0
+    End Select
+
+'End Day on Weekend fix (Move to Monday)
+    Select Case WeekDay(Int(EndStamp), vbMonday)
+        Case 6
+            EndStamp = (Int(EndStamp) + 2) + BizStart
+        Case 7
+            EndStamp = (Int(EndStamp) + 1) + BizStart
+        Case Else
+            EndStamp = EndStamp + 0
+    End Select
+
+'*************************
+Hour_Fixing:
+'starting hour Adjustment
+    StartHour = StartStamp - Int(StartStamp) 'grabs the hour portion of the date
+    
+    If StartHour < BizStart Or StartHour > BizEnd Then
+       If StartHour < BizStart Then 'if before start time, convert to start hour
+           StartStamp = Int(StartStamp) + BizStart
+         Else  'otherwise, convert to end hour
+           StartStamp = Int(StartStamp) + BizEnd
+       End If
+    End If
+        
+        
+ 'ending hour Adjustment
+    EndHour = EndStamp - Int(EndStamp) 'grabs the hour portion of the date
+    
+    If EndHour < BizStart Or EndHour > BizEnd Then
+       If EndHour < BizStart Then 'if before start time, convert to start hour
+           EndStamp = Int(EndStamp) + BizStart
+         Else
+           EndStamp = Int(EndStamp) + BizEnd
+       End If
+    End If
+    
+'***************
+Day_Counting:
+   'counts the number of days between, not including start and finish days
+    DayCount = 0
+    WeekEndCount = 0
+    
+    DaysBetween = Int(EndStamp) - Int(StartStamp)
+    Select Case DaysBetween
+    Case 0
+        FinalHours = ((EndStamp - Int(EndStamp)) - (StartStamp - Int(StartStamp)))
+        
+    Case 1
+        FinalHours = (BizEnd - (StartStamp - Int(StartStamp))) + ((EndStamp - Int(EndStamp)) - BizStart)
+    
+    Case Else
+        'this counts the whole days between and subtracts the weekends
+        For x = (Int(StartStamp) + 1) To (Int(EndStamp) - 1) Step 1
+            If WeekDay(x, vbMonday) > 5 Then
+                WeekEndCount = WeekEndCount + 1
+            End If
+        Next x
+        DaysBetween = DaysBetween - WeekEndCount
+        FinalHours = (BizEnd - (StartStamp - Int(StartStamp))) + ((EndStamp - Int(EndStamp)) - BizStart) + ((DaysBetween - 1) * (BizEnd - BizStart))
+     
+     End Select
+     
+'******************
+Done:
+     'puts final result into decimal format
+     SLA = Format(FinalHours, "#,###.0000000") * 24
+     
+End Function
