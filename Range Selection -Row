@@ -1,0 +1,15 @@
+Dim rRange As Range
+Dim rDuplicate As Range
+
+Set rRange = ActiveSheet.UsedRange
+lFirstRow = rRange.Row
+lLastRow = rRange.Rows.Count + rRange.Row - 1
+lFirstColumn = rRange.Column
+lLastColumn = rRange.Columns.Count + rRange.Column - 1
+' New reference to current range (can be truncated)
+Set rDuplicate = Range(Cells(lFirstRow, lFirstColumn), _
+      Cells(lLastRow, lLastColumn))
+      
+      
+      
+  
