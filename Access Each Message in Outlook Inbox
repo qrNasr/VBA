@@ -1,0 +1,66 @@
+Public Sub ProcessInbox()
+Dim oOutlook As Outlook.Application
+Dim oNs As Outlook.NameSpace
+Dim oFldr As Outlook.MAPIFolder
+Dim oAttachments As Outlook.Attachments
+Dim oAttachment As Outlook.Attachment
+Dim iMsgCount As Integer
+
+Dim oMessage As Outlook.MailItem
+
+Dim iCtr As Long, iAttachCnt As Long
+
+Dim sFileNames As String
+Dim aFileNames() As String
+
+
+'get reference to inbox
+Set oOutlook = New Outlook.Application
+Set oNs = oOutlook.GetNamespace("MAPI")
+Set oFldr = oNs.GetDefaultFolder(olFolderInbox)
+Debug.Print "Total Items: "; oFldr.Items.Count
+Debug.Print "Total Unread items = " & oFldr.UnReadItemCount
+
+
+For Each oMessage In oFldr.Items
+        
+        With oMessage
+        'basic info about message
+            Debug.Print .To
+            Debug.Print .CC
+            Debug.Print .Subject
+            Debug.Print .Body
+            If .UnRead Then
+                Debug.Print "Message has not been read"
+            Else
+                Debug.Print "Message has been read"
+            End If
+            iMsgCount = iMsgCount + 1
+            'save message as text file
+            .SaveAs "C:\message" & iMsgCount & ".txt", olTXT
+
+            'reference and save all attachments
+            With oMessage.Attachments
+                iAttachCnt = .Count
+                If iAttachCnt > 0 Then
+                    For iCtr = 1 To iAttachCnt
+
+            .Item(iCtr).SaveAsFile "C:\" & .Item(iCtr).FileName
+
+                    Next iCtr
+                End If
+            End With
+        End With
+        DoEvents
+
+    Next oMessage
+    
+    
+    Set oAttachment = Nothing
+    Set oAttachments = Nothing
+    Set oMessage = Nothing
+    Set oFldr = Nothing
+    Set oNs = Nothing
+    Set oOutlook = Nothing
+    
+End Sub
